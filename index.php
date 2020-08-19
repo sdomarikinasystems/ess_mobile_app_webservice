@@ -4,6 +4,62 @@ date_default_timezone_set('Asia/Manila');
 $tag = $_POST["tag"];
 
 switch ($tag) {
+	case 'add_comment':
+		$ts = date("Y-m-d H:i:s");
+
+		$dateoftask = date("Y-m-d",strtotime($_POST["dateoftask"]));
+		$accountid = $_POST["accountid"];
+		$details = $_POST["details"];
+
+		$q = "SELECT id FROM submitted_wfh WHERE user_id='" . $accountid . "' AND weekdate <= '" . $dateoftask ."' AND weekdate_to >= '" . $dateoftask ."' LIMIT 1";
+		$res = mysqli_query($c,$q);
+		$output =  mysqli_fetch_all($res,MYSQLI_ASSOC);
+		$planid = $output[0]["id"];
+
+		$q = "INSERT INTO tbl_taskcomments SET plan_id='" . $planid ."',user_id='" . $accountid . "',details='" . $details ."',timestamp='" . $ts ."'";
+		if(mysqli_query($c,$q)){
+			echo "true";
+		}else{
+			echo "false";
+		}
+		break;
+	case 'getcallcomments':
+	$dateoftask = date("Y-m-d",strtotime($_POST["dateoftask"]));
+	$accountid = $_POST["accountid"];
+	//GET PLAN ID FROM EMP NUMBER AND DATE OF TASK
+
+	$q = "SELECT id FROM submitted_wfh WHERE user_id='" . $accountid . "' AND weekdate <= '" . $dateoftask ."' AND weekdate_to >= '" . $dateoftask ."' LIMIT 1";
+	$res = mysqli_query($c,$q);
+	$output =  mysqli_fetch_all($res,MYSQLI_ASSOC);
+
+	if(mysqli_num_rows($res) != 0){
+
+	$q = "SELECT tbl_taskcomments.id as commentid,
+	tbl_taskcomments.user_id,
+	tbl_taskcomments.details,
+	tbl_taskcomments.plan_id,
+	tbl_taskcomments.timestamp as comment_time,
+	employees.id,
+	employees.fname,
+	employees.lname
+
+	FROM tbl_taskcomments LEFT JOIN employees ON tbl_taskcomments.user_id = employees.id WHERE tbl_taskcomments.plan_id='" . $output[0]["id"] ."' ORDER BY timestamp ASC LIMIT 64";
+
+	$res = mysqli_query($c,$q);
+	$outx = mysqli_fetch_all($res,MYSQLI_ASSOC);
+	$toecho = "";
+	for ($i=0; $i < count($outx); $i++) { 
+		// commentid, comment_time, details, plan_id, fname
+		$toecho .=  $outx[$i]["commentid"] . "^" . date("M d g:i a",strtotime($outx[$i]["comment_time"])) . "^" . $outx[$i]["details"] . "^" . $outx[$i]["plan_id"] . "^" . titleCase($outx[$i]["fname"]) . "~";
+	}
+	}else{
+		$toecho = "empty";
+	}
+
+	$toecho = rtrim($toecho, "~");
+	echo $toecho;
+
+		break;
 	case 'addtaskfortoday':
 		
 		$account_id = $_POST["account_id"];
@@ -165,7 +221,7 @@ switch ($tag) {
 	$account_id = $_POST["account_id"];
 	$thedate = date("Y-m-d",strtotime($_POST["date"]));
 	//GET WORKWEEK PLAN
-	$q = "SELECT * FROM submitted_wfh WHERE weekdate != '1970-01-01' AND user_id='" . $account_id . "' AND status='2' ORDER BY weekdate DESC LIMIT 1";
+	$q = "SELECT * FROM submitted_wfh WHERE weekdate != '1970-01-01' AND user_id='" . $account_id . "' AND (status='2' OR status='4') ORDER BY weekdate DESC LIMIT 1";
 	$res = mysqli_query($c,$q);
 	$output = mysqli_fetch_all($res,MYSQLI_ASSOC);
 	// echo json_encode(mysqli_fetch_all($res,MYSQLI_ASSOC));
@@ -247,7 +303,36 @@ switch ($tag) {
 	
 		break;
 }
+function titleCase($string) 
+{
+	$word_splitters = array(' ', '-', "O'", "L'", "D'", 'St.', 'Mc');
+	$lowercase_exceptions = array('the', 'van', 'den', 'von', 'und', 'der', 'de', 'da', 'of', 'and', "l'", "d'");
+	$uppercase_exceptions = array('III', 'IV', 'VI', 'VII', 'VIII', 'IX');
 
+	$string = strtolower($string);
+	foreach ($word_splitters as $delimiter)
+	{ 
+		$words = explode($delimiter, $string); 
+		$newwords = array(); 
+		foreach ($words as $word)
+		{ 
+			if (in_array(strtoupper($word), $uppercase_exceptions))
+				$word = strtoupper($word);
+			else
+			if (!in_array($word, $lowercase_exceptions))
+				$word = ucfirst($word); 
+
+			$newwords[] = $word;
+		}
+
+		if (in_array(strtolower($delimiter), $lowercase_exceptions))
+			$delimiter = strtolower($delimiter);
+
+		$string = join($delimiter, $newwords); 
+	} 
+	return $string; 
+
+}
 function sdmenc($data){
 		
 		$keycode = openssl_digest(utf8_encode("virmil"),"sha512",true);
