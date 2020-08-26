@@ -221,7 +221,7 @@ switch ($tag) {
 	$account_id = $_POST["account_id"];
 	$thedate = date("Y-m-d",strtotime($_POST["date"]));
 	//GET WORKWEEK PLAN
-	$q = "SELECT * FROM submitted_wfh WHERE weekdate != '1970-01-01' AND user_id='" . $account_id . "' AND (status='2' OR status='4') ORDER BY weekdate DESC LIMIT 1";
+	$q = "SELECT * FROM submitted_wfh WHERE weekdate != '1970-01-01' AND user_id='" . $account_id . "' AND (status='2' OR status='4') AND weekdate <= '" . $thedate ."' AND weekdate_to >= '" . $thedate ."' ORDER BY weekdate DESC LIMIT 1";
 	$res = mysqli_query($c,$q);
 	$output = mysqli_fetch_all($res,MYSQLI_ASSOC);
 	// echo json_encode(mysqli_fetch_all($res,MYSQLI_ASSOC));
@@ -245,7 +245,7 @@ switch ($tag) {
 
 			if($belongs == true){
 			//CHECK IF THE DAY BELONGS TO SUBMITTED WFH
-				
+
 				$q_a = "SELECT * FROM wfh_task WHERE daydate='" . $thedate . "' AND userid='" . $account_id . "'";
 				$res_a = mysqli_query($c,$q_a);
 				$output_a = mysqli_fetch_all($res_a,MYSQLI_ASSOC);
